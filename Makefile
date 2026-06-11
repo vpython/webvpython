@@ -1,7 +1,10 @@
 # glowThings workspace management
 # Run from the glowThings directory.
 
-.PHONY: help serve deploy deploy-runners deploy-docs deploy-flask build-packages
+.PHONY: help serve deploy deploy-runners deploy-docs deploy-flask build-packages \
+        git-status git-pull git-push
+
+SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
 
 help:
 	@echo "Targets:"
@@ -11,6 +14,9 @@ help:
 	@echo "  deploy-runners   Deploy both runners to GCS"
 	@echo "  deploy-docs      Build and deploy VPython docs to GCS"
 	@echo "  build-packages   Rebuild rsWVPRunner GlowScript packages from source"
+	@echo "  git-status       git status in all sub-repos"
+	@echo "  git-pull         git pull in all sub-repos"
+	@echo "  git-push         git push in all sub-repos"
 
 # ── Local dev ─────────────────────────────────────────────────────────────────
 
@@ -40,3 +46,23 @@ deploy-docs:
 
 build-packages:
 	cd rsWVPRunner && python build_package.py
+
+# ── Git ───────────────────────────────────────────────────────────────────
+
+git-status:
+	@for repo in $(SUBREPOS); do \
+	  echo "=== $$repo ==="; \
+	  git -C $$repo status -s; \
+	done
+
+git-pull:
+	@for repo in $(SUBREPOS); do \
+	  echo "=== $$repo ==="; \
+	  git -C $$repo pull; \
+	done
+
+git-push:
+	@for repo in $(SUBREPOS); do \
+	  echo "=== $$repo ==="; \
+	  git -C $$repo push; \
+	done

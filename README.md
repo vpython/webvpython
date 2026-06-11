@@ -1,4 +1,4 @@
-# glowThings workspace
+# WebVPython workspace
 
 Management repo for the Web VPython stack. The four active sub-repos are
 separate git repositories cloned into this directory.
