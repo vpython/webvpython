@@ -29,3 +29,28 @@ Added June 2026. Both `https://flaskdstorehost-dhppn6xgeq-uc.a.run.app` and `htt
 
 4. **Google OAuth** — add `https://<new-domain>/google/auth` to the authorized redirect URIs
    in Google Cloud Console → APIs & Services → Credentials → OAuth client.
+
+## TODO: cyvector wheel for WASM (Python 3.13)
+
+`cyvector` is a Cython-accelerated vector implementation used by wmWVPRunner. It is currently
+disabled in `wmWVPRunner/vpython/vec_js.py` (`#from cyvector import *`) because the existing
+wheel (`cyvector-0.1-cp311-cp311-emscripten_3_1_39_wasm32.whl`) was built for Python 3.11 /
+Emscripten 3.1.39, but Pyodide v0.29.4 requires Python 3.13 / Emscripten 3.1.58.
+
+Steps to re-enable:
+
+1. **Update the pyodide fork** (`/Users/steve/Development/pyodide`, `sjs` branch) to a version
+   that targets Python 3.13 / Emscripten 3.1.58 (merge upstream Pyodide changes into `sjs`).
+
+2. **Rebuild the wheel** — the cyvector package lives at
+   `pyodide/packages/cyvector/cyvector/cyvector.pyx` (already has the kwargs fix from June 2026).
+   Build with the updated Pyodide toolchain to produce a `cp313` wheel.
+
+3. **Deploy the wheel** — copy the new `.whl` to `wmWVPRunner/static/` and update the filename
+   reference in `wmWVPRunner/src/lib/utils/utils.js` line 2.
+
+4. **Re-enable in vec_js.py** — uncomment `from cyvector import *` and remove `from .vector import *`
+   in `wmWVPRunner/vpython/vec_js.py`. The `cyvector.vector` class will replace the pure-Python
+   `vector` base class, giving a performance boost for vector-heavy programs.
+
+5. **Rebuild vpython.zip** — `npm run zip` in wmWVPRunner, then `do_build.sh`.
