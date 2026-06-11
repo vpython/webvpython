@@ -1,0 +1,20 @@
+# Sub-repos — each has its own git repo; clone via setup.sh
+flaskHost/
+rsWVPRunner/
+wmWVPRunner/
+webVPythonDocsHome/
+glowscript/
+
+# Old/experimental directories
+datastoreTest/
+db_mongo_docker/
+glowscript_npm/
+mongo_testapp/
+refactorCombo/
+testRunnerHost/
+uglify_test/
+
+# Local tooling
+.claude/
+memory/
+.DS_Store
