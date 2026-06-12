@@ -1,7 +1,7 @@
-# glowThings workspace management
-# Run from the glowThings directory.
+# webvpython workspace management
+# Run from the webvpython directory.
 
-.PHONY: help serve deploy deploy-runners deploy-docs deploy-flask build-packages \
+.PHONY: help serve stop deploy deploy-runners deploy-docs deploy-flask build-packages \
         git-status git-pull git-push
 
 SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
@@ -9,6 +9,7 @@ SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
 help:
 	@echo "Targets:"
 	@echo "  serve            Start all local dev servers (flask :8080, rs :8090, wm :5173)"
+	@echo "  stop             Stop all local dev servers"
 	@echo "  deploy           Deploy all four repos"
 	@echo "  deploy-flask     Deploy flaskHost to Cloud Run"
 	@echo "  deploy-runners   Deploy both runners to GCS"
@@ -27,6 +28,13 @@ serve:
 	  (cd rsWVPRunner && bash serve.sh) & \
 	  (cd wmWVPRunner && bash serve.sh) & \
 	  wait
+
+stop:
+	-cd flaskHost && docker compose down
+	@for port in 8090 5173; do \
+	  pids=$$(lsof -ti tcp:$$port); \
+	  if [ -n "$$pids" ]; then echo "Stopping port $$port (pid $$pids)"; kill $$pids; fi; \
+	done
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
 
