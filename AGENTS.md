@@ -54,3 +54,59 @@ Steps to re-enable:
    `vector` base class, giving a performance boost for vector-heavy programs.
 
 5. **Rebuild vpython.zip** — `npm run zip` in wmWVPRunner, then `do_build.sh`.
+
+## WASM runner issue fixes — session progress (through 2026-06-14)
+
+Working through the open GitHub issues in wmWVPRunner (catalogued in
+`wmWVPRunner/ISSUES.md`), one fix per commit, each verified in the browser
+before committing.
+
+### Workflow for these fixes
+1. Edit `wmWVPRunner/vpython/*.py` (and/or `src/routes/+page.svelte`).
+2. `cd wmWVPRunner && npm run zip` — rebuilds `static/vpython.zip` so the dev
+   server serves the updated package. (`static/vpython.zip` is gitignored.)
+3. Full-reload (or hot-reload) the Flask page at localhost:8080 and run a test
+   program. A `+page.svelte` change needs a full page reload; a package-only
+   change needs just the program re-run.
+4. Commit with `Fixes #N` once verified.
+
+Local dev was already running: Flask :8080 (docker), rs runner :8090, wasm
+runner (vite) :5173. Issue #1 (rate() in functions) was fixed earlier via the
+AST transformer — see `wmWVPRunner/vpython/_async_transform.py`.
+
+### Done (committed + pushed to wmWVPRunner main)
+- **#1** rate()/await — AST transformer (`_async_transform.py`)
+- **#8** `copy()` — top-level wrapper delegating to `clone()`
+- **#13** `Date()` — js Date constructor wrapper in `__init__.py`
+- **#23** MathJax — load MathJax 2.7.0 before glow in `+page.svelte`; proxy in
+  `_mathjax.py` so `MathJax.Hub.Queue([...])` converts the Python list to a JS
+  array (Pyodide does not auto-convert list args to JS arrays)
+- **ghbars** (no GH issue) — was wired to the gdots factory and never exported;
+  now imports `js_ghbars`, uses the right factory, exported
+
+### In progress — #11 scene.delete() / obj.delete()  (BRANCH: `wip-scene-delete`)
+`delete` is a JS reserved word, so `getattr(jsObj, 'delete')` raised
+AttributeError. GlowScript objects expose `remove()` instead (classic GlowScript
+rewrites `.delete` -> `.remove` in preprocessing; see
+`glowscript/lib/glow/canvas.js:289`).
+
+Added `glowProxy.delete()` calling `self.jsObj.remove()` (committed on branch
+`wip-scene-delete`, pushed). Result: it is now callable with no AttributeError,
+BUT calling it does NOT actually remove a 3-D primitive — a `box` stays visible
+after `b.delete()`.
+
+**Next step:** the `remove()` definitions found in `primitives.js`
+(lines 3020/3197/3233/3363/3448/3620/3719) are all WIDGETS
+(radio/button/slider/menu/etc.). The 3-D body remove path (box/sphere/compound)
+is elsewhere and still needs locating — find what actually removes a rendered
+primitive from the canvas (and whether it needs a canvas re-render / object-list
+splice), then make `glowProxy.delete()` call the right thing. Verify a box
+disappears, then merge `wip-scene-delete` to main with `Fixes #11`.
+
+### Remaining queued issues (suggested order)
+- **#19** plot floats — `graphPlotter.plot()` needs `to_js()` on numeric args
+- **#3** `input()` — bridge to a browser prompt (design decision needed)
+- **#17** `range()` float step — provide `arange()` or document
+- Others still open: #2, #4 (#randint/range compat), #5, #6, #9, #12 (sound),
+  #14/#15 (slow startup/exec), #16 (print font), #20, #21 — see
+  `wmWVPRunner/ISSUES.md`
