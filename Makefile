@@ -1,6 +1,9 @@
 # webvpython workspace management
 # Run from the webvpython directory.
 
+# Bare `make` prints the target list (explicit so reordering targets can't change it).
+.DEFAULT_GOAL := help
+
 .PHONY: help serve serve-prod stop deploy deploy-runners deploy-docs deploy-flask build-packages \
         git-status git-pull git-push
 
