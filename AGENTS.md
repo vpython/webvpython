@@ -59,54 +59,57 @@ Steps to re-enable:
 
 Working through the open GitHub issues in wmWVPRunner (catalogued in
 `wmWVPRunner/ISSUES.md`), one fix per commit, each verified in the browser
-before committing.
+before committing. Local dev servers: Flask :8080 (docker), rs runner :8090,
+wasm runner (vite) :5173.
 
-### Workflow for these fixes
+### Per-fix workflow
 1. Edit `wmWVPRunner/vpython/*.py` (and/or `src/routes/+page.svelte`).
-2. `cd wmWVPRunner && npm run zip` — rebuilds `static/vpython.zip` so the dev
-   server serves the updated package. (`static/vpython.zip` is gitignored.)
-3. Full-reload (or hot-reload) the Flask page at localhost:8080 and run a test
-   program. A `+page.svelte` change needs a full page reload; a package-only
-   change needs just the program re-run.
-4. Commit with `Fixes #N` once verified.
+2. `cd wmWVPRunner && npm run zip` — rebuilds `static/vpython.zip` (gitignored)
+   so the dev server serves the updated package.
+3. Reload localhost:8080 and run a test program. A `+page.svelte` change needs a
+   full page reload; a package-only change needs just re-running the program.
+4. Commit with `Fixes #N` once verified in the browser, then push to main.
 
-Local dev was already running: Flask :8080 (docker), rs runner :8090, wasm
-runner (vite) :5173. Issue #1 (rate() in functions) was fixed earlier via the
-AST transformer — see `wmWVPRunner/vpython/_async_transform.py`.
-
-### Done (committed + pushed to wmWVPRunner main)
-- **#1** rate()/await — AST transformer (`_async_transform.py`)
+### Done — all committed + pushed to wmWVPRunner main
+- **#1** rate()/await inside functions — AST transformer
+  (`vpython/_async_transform.py`); preserves line numbers/comments. NOTE: this
+  is the same root cause as **#9** and **#20** ('await' outside async function)
+  — those two are very likely fixed too but were not individually re-tested;
+  worth confirming with their programs (Bezier #9, WaveEquation #20) and closing.
 - **#8** `copy()` — top-level wrapper delegating to `clone()`
-- **#13** `Date()` — js Date constructor wrapper in `__init__.py`
-- **#23** MathJax — load MathJax 2.7.0 before glow in `+page.svelte`; proxy in
-  `_mathjax.py` so `MathJax.Hub.Queue([...])` converts the Python list to a JS
-  array (Pyodide does not auto-convert list args to JS arrays)
-- **ghbars** (no GH issue) — was wired to the gdots factory and never exported;
-  now imports `js_ghbars`, uses the right factory, exported
+- **#13** `Date()` — js Date constructor wrapper
+- **#23** MathJax — load MathJax 2.7.0 before glow in `+page.svelte`; `_mathjax.py`
+  proxy so `MathJax.Hub.Queue([...])` converts the Python list to a JS array
+- **ghbars** (no GH issue) — was wired to gdots factory and never exported; fixed
+- **#11** scene.delete() / obj.delete() — `glowProxy.delete()` calls `remove()`
+  when present (canvas/graphs/widgets) else `visible=False` + `__deleted=True`
+  (3-D primitives have no remove()). setattr used to avoid name-mangling.
+- **#19** plot floats — `graphPlotter.plot()` to_js()-converts positional
+  list/tuple args (Pyodide doesn't auto-convert lists to JS arrays)
+- **#3** `input()` — uses `window.prompt()` (what GlowScript's winput uses);
+  Python's builtin input() raised OSError under Pyodide
+- **#17** range() float step — WON'T FIX (documented in ISSUES.md): keep range()
+  integer-only (standard Python); recommend numpy.arange. A user-facing
+  compatibility note in webVPythonDocsHome would be good but isn't written yet.
 
-### In progress — #11 scene.delete() / obj.delete()  (BRANCH: `wip-scene-delete`)
-`delete` is a JS reserved word, so `getattr(jsObj, 'delete')` raised
-AttributeError. GlowScript objects expose `remove()` instead (classic GlowScript
-rewrites `.delete` -> `.remove` in preprocessing; see
-`glowscript/lib/glow/canvas.js:289`).
+### Key facts learned (so we don't re-derive them)
+- Removing the COOP/COEP headers (added for the abandoned Option C worker) is
+  what fixed the "iframe refuses to connect" — COEP require-corp made the Flask
+  page cross-origin-isolated, blocking cross-origin runner iframes.
+- Pyodide does NOT auto-convert a Python list to a JS array when calling a JS
+  function — it passes an opaque PyProxy. This bit #19 (plot) and #23 (MathJax
+  Queue). Use `to_js()`.
+- GlowScript removal mechanisms differ by type: canvas/scene, graphs, and
+  widgets have `remove()`; 3-D primitives use `visible=False` + `__deleted`.
+- The glow library configures MathJax itself, but only if MathJax is already
+  loaded when glow evaluates — so MathJax must load BEFORE glow.
 
-Added `glowProxy.delete()` calling `self.jsObj.remove()` (committed on branch
-`wip-scene-delete`, pushed). Result: it is now callable with no AttributeError,
-BUT calling it does NOT actually remove a 3-D primitive — a `box` stays visible
-after `b.delete()`.
-
-**Next step:** the `remove()` definitions found in `primitives.js`
-(lines 3020/3197/3233/3363/3448/3620/3719) are all WIDGETS
-(radio/button/slider/menu/etc.). The 3-D body remove path (box/sphere/compound)
-is elsewhere and still needs locating — find what actually removes a rendered
-primitive from the canvas (and whether it needs a canvas re-render / object-list
-splice), then make `glowProxy.delete()` call the right thing. Verify a box
-disappears, then merge `wip-scene-delete` to main with `Fixes #11`.
-
-### Remaining queued issues (suggested order)
-- **#19** plot floats — `graphPlotter.plot()` needs `to_js()` on numeric args
-- **#3** `input()` — bridge to a browser prompt (design decision needed)
-- **#17** `range()` float step — provide `arange()` or document
-- Others still open: #2, #4 (#randint/range compat), #5, #6, #9, #12 (sound),
-  #14/#15 (slow startup/exec), #16 (print font), #20, #21 — see
-  `wmWVPRunner/ISSUES.md`
+### Remaining open issues (suggested next: #6)
+- **#9, #20** — confirm fixed by the AST transformer, then close
+- **#5** — forward references (bind before def); real-Python limitation → likely
+  document, like #17
+- **#6** — NameError when clicking a sphere (scene.bind / event-handler path);
+  may share a root cause with #21
+- **#21** — vector exchange inside a button handler fails
+- **#12** sound, **#16** print font differs, **#14/#15** slow startup/exec
+- See `wmWVPRunner/ISSUES.md` for the full catalogue.
