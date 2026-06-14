@@ -45,8 +45,12 @@ serve-prod:
 	fi
 	@echo "Starting dev servers — flask -> PROD Datastore (glowscript-py38). Ctrl-C to stop all."
 	@echo "WARNING: saves/deletes from the UI write to LIVE production data."
+	@# Unset any ambient Google project/cred vars (e.g. from another gcloud config
+	@# like 'currmaps' -> gen-lang-client-...) so .flaskenv + svc.json win. flask
+	@# loads .flaskenv with python-dotenv override=False, so a pre-set var would
+	@# otherwise shadow it and point Datastore at the wrong project.
 	@trap 'kill 0' INT; \
-	  (cd flaskHost   && .venv/bin/flask run) & \
+	  (cd flaskHost   && env -u GOOGLE_CLOUD_PROJECT -u GOOGLE_APPLICATION_CREDENTIALS .venv/bin/flask run) & \
 	  (cd rsWVPRunner && bash serve.sh) & \
 	  (cd wmWVPRunner && bash serve.sh) & \
 	  wait
