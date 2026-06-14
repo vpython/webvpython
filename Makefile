@@ -1,7 +1,7 @@
 # webvpython workspace management
 # Run from the webvpython directory.
 
-.PHONY: help serve stop deploy deploy-runners deploy-docs deploy-flask build-packages \
+.PHONY: help serve serve-prod stop deploy deploy-runners deploy-docs deploy-flask build-packages \
         git-status git-pull git-push
 
 SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
@@ -9,6 +9,7 @@ SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
 help:
 	@echo "Targets:"
 	@echo "  serve            Start all local dev servers (flask :8080, rs :8090, wm :5173)"
+	@echo "  serve-prod       Like serve, but flask runs locally against PROD Datastore (glowscript-py38)"
 	@echo "  stop             Stop all local dev servers"
 	@echo "  deploy           Deploy all four repos"
 	@echo "  deploy-flask     Deploy flaskHost to Cloud Run"
@@ -29,9 +30,27 @@ serve:
 	  (cd wmWVPRunner && bash serve.sh) & \
 	  wait
 
+serve-prod:
+	@if [ ! -x flaskHost/.venv/bin/flask ]; then \
+	  echo "ERROR: flaskHost/.venv/bin/flask not found."; \
+	  echo "  Create it first:  cd flaskHost && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"; \
+	  exit 1; \
+	fi
+	@if grep -qE '^[[:space:]]*DATASTORE_EMULATOR_HOST' flaskHost/.flaskenv; then \
+	  echo "ERROR: DATASTORE_EMULATOR_HOST is active in flaskHost/.flaskenv — comment it out to hit PROD."; \
+	  exit 1; \
+	fi
+	@echo "Starting dev servers — flask -> PROD Datastore (glowscript-py38). Ctrl-C to stop all."
+	@echo "WARNING: saves/deletes from the UI write to LIVE production data."
+	@trap 'kill 0' INT; \
+	  (cd flaskHost   && .venv/bin/flask run) & \
+	  (cd rsWVPRunner && bash serve.sh) & \
+	  (cd wmWVPRunner && bash serve.sh) & \
+	  wait
+
 stop:
 	-cd flaskHost && docker compose down
-	@for port in 8090 5173; do \
+	@for port in 8080 8090 5173; do \
 	  pids=$$(lsof -ti tcp:$$port); \
 	  if [ -n "$$pids" ]; then echo "Stopping port $$port (pid $$pids)"; kill $$pids; fi; \
 	done
