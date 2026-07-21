@@ -56,7 +56,7 @@ Classic has continued to evolve while the other repos have not. The goal is to b
 ```
 npm run zip        # builds static/vpython.zip from vpython/
 npm run build      # SvelteKit build → build/ (includes vpython.zip via static/)
-gsutil cp build/*  # deploys to GCS bucket
+gcloud storage cp build/*  # deploys to GCS bucket
 ```
 
 **Verification:** `npm run zip && npm run build` completes without error; `build/vpython.zip` is present.

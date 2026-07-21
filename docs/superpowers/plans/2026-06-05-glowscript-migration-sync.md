@@ -116,21 +116,23 @@ In the `## Build and Deployment` section, replace the existing code block with:
 npm run zip
 
 # Clean old artifacts
-gsutil -m rm -r gs://wmvprunner/_app/ 2>/dev/null || true
-gsutil rm gs://wmvprunner/index.html gs://wmvprunner/favicon.png 2>/dev/null || true
+gcloud storage rm -r gs://wmvprunner/_app/ 2>/dev/null || true
+gcloud storage rm gs://wmvprunner/index.html gs://wmvprunner/favicon.png 2>/dev/null || true
 
 # Set CORS on bucket
-gsutil cors set cors.json gs://wmvprunner
+gcloud storage buckets update gs://wmvprunner --cors-file=cors.json
 
 # Build the app (vpython.zip lands in build/ via static/)
 npm run build
 
 # Upload with cache headers
-gsutil -m -h "Cache-Control:public, max-age=3600" cp -r build/* gs://wmvprunner/
+gcloud storage cp -r build/* gs://wmvprunner/ --cache-control="public, max-age=3600"
 
 # Set proper content types and no-cache for index
-gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" gs://wmvprunner/index.html
-gsutil -m setmeta -h "Content-Type:application/zip" -h "Cache-Control:no-cache" gs://wmvprunner/vpython.zip
+gcloud storage objects update gs://wmvprunner/index.html \
+  --cache-control="no-cache, no-store, must-revalidate"
+gcloud storage objects update gs://wmvprunner/vpython.zip \
+  --content-type=application/zip --cache-control=no-cache
 ```
 
 - [ ] **Step 6: Commit**
