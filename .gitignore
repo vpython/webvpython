@@ -18,3 +18,10 @@ uglify_test/
 .claude/
 memory/
 .DS_Store
+
+# Secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+svc.json
