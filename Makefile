@@ -12,7 +12,7 @@ SUBREPOS := flaskHost rsWVPRunner wmWVPRunner webVPythonDocsHome
 help:
 	@echo "Targets:"
 	@echo "  serve            Start all local dev servers (flask :8080, rs :8090, wm :5173)"
-	@echo "  serve-prod       Like serve, but flask runs locally against PROD Datastore (glowscript-py38)"
+	@echo "  serve-prod       Like serve, but flask runs locally against PROD Datastore (glowscript)"
 	@echo "  stop             Stop all local dev servers"
 	@echo "  deploy           Deploy all four repos"
 	@echo "  deploy-flask     Deploy flaskHost to Cloud Run"
@@ -43,14 +43,19 @@ serve-prod:
 	  echo "ERROR: DATASTORE_EMULATOR_HOST is active in flaskHost/.flaskenv — comment it out to hit PROD."; \
 	  exit 1; \
 	fi
-	@echo "Starting dev servers — flask -> PROD Datastore (glowscript-py38). Ctrl-C to stop all."
+	@if [ ! -f "$$HOME/.config/gcloud/application_default_credentials.json" ]; then \
+	  echo "ERROR: no gcloud application-default credentials. Run: gcloud auth application-default login"; \
+	  exit 1; \
+	fi
+	@echo "Starting dev servers — flask -> PROD Datastore (glowscript). Ctrl-C to stop all."
 	@echo "WARNING: saves/deletes from the UI write to LIVE production data."
-	@# Unset any ambient Google project/cred vars (e.g. from another gcloud config
-	@# like 'currmaps' -> gen-lang-client-...) so .flaskenv + svc.json win. flask
-	@# loads .flaskenv with python-dotenv override=False, so a pre-set var would
-	@# otherwise shadow it and point Datastore at the wrong project.
+	@# Set project and credentials explicitly. flask loads .flaskenv with
+	@# python-dotenv override=False, so these win over .flaskenv (which points at
+	@# the old glowscript-py38 dev project and svc.json, a py38 key with no access
+	@# to glowscript) and over any ambient gcloud config. Credentials are your own
+	@# application-default login, not a downloaded key.
 	@trap 'kill 0' INT; \
-	  (cd flaskHost   && env -u GOOGLE_CLOUD_PROJECT -u GOOGLE_APPLICATION_CREDENTIALS .venv/bin/flask run) & \
+	  (cd flaskHost   && GOOGLE_CLOUD_PROJECT=glowscript GOOGLE_APPLICATION_CREDENTIALS="$$HOME/.config/gcloud/application_default_credentials.json" .venv/bin/flask run) & \
 	  (cd rsWVPRunner && bash serve.sh) & \
 	  (cd wmWVPRunner && bash serve.sh) & \
 	  wait

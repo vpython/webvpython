@@ -35,10 +35,10 @@ project's Datastore, and both run in project `glowscript`. Beta and Classic read
 same users, folders and programs. This is what makes `legacy.glowscript.org` a real fallback: a
 user who goes back sees the same work.
 
-> ⚠️ `make serve-prod` points local Flask at **`glowscript-py38`**, not `glowscript`, even though
-> it warns about "LIVE production data". Billing shows almost no reads in `glowscript-py38`, so
-> it looks like the glowscriptdev database. Decide whether that is intended (a safer prod-like
-> copy) and fix either the target or the warning.
+> Resolved 2026-09-26: `glowscript-py38` was only used during development. `make serve-prod`
+> now targets `glowscript` using your gcloud application-default login (the `py38` key in
+> `flaskHost/svc.json` has no access to `glowscript`), and `flaskHost/do_build.sh` pins
+> `--project glowscript` so the active gcloud config can't redirect a deploy.
 
 **DNS.** Both `glowscript.org` and `webvpython.org` are at GoDaddy (`domaincontrol.com`), with
 no DNSSEC (no DS records), so there's no DNSSEC to switch off before changing nameservers.
@@ -132,8 +132,9 @@ The immediate win, since Classic carries all the real traffic until cutover.
 flaskHost copied Classic's pattern (`src/routes.py:357` in `parseUrlPath`, `:272` in
 `authorize_user`). Fix it there, since that's where traffic is going:
 1. Fetch the User once per request (share it between `parseUrlPath` and `authorize_user`).
-2. Autosave: don't `PUT` if the source hasn't changed since the last save; consider a longer
-   debounce than 1 s (`src/ide.js:1673`, `:2102`).
+2. Autosave already skips unchanged saves (`saveAfter`, `src/ide.js:321`). Optionally lengthen
+   the 1 s debounce (`src/ide.js:1673`, `:2102`); this trades fewer writes for a longer window
+   of unsaved typing.
 3. Measure before and after from the billing export (Firestore Read Ops / Entity Writes).
 
 Optional: backport to Classic, which pays the bill today.
@@ -172,6 +173,5 @@ rush.
 
 ## Open questions
 
-- `make serve-prod` database target (see Current state).
 - Final name for the runner hostname.
 - Whether Classic should get the Phase 3 database fixes.
