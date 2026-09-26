@@ -20,7 +20,7 @@ help:
 	@echo "  deploy-docs      Build and deploy VPython docs to GCS"
 	@echo "  build-packages   Rebuild rsWVPRunner GlowScript packages from source"
 	@echo "  git-status       git status in all sub-repos"
-	@echo "  git-pull         git pull in all sub-repos"
+	@echo "  git-pull         Pull the workspace + all sub-repos, fast-forward only (refreshall.sh)"
 	@echo "  git-push         git push in all sub-repos"
 
 # ── Local dev ─────────────────────────────────────────────────────────────────
@@ -95,10 +95,7 @@ git-status:
 	done
 
 git-pull:
-	@for repo in $(SUBREPOS); do \
-	  echo "=== $$repo ==="; \
-	  git -C $$repo pull; \
-	done
+	@bash refreshall.sh
 
 git-push:
 	@for repo in $(SUBREPOS); do \

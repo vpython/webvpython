@@ -26,6 +26,17 @@ bash setup.sh
 - `rsWVPRunner`: installs Uglify-ES `node_modules` (needed for `build-packages`)
 - `webVPythonDocsHome`: creates `.venv` and installs Sphinx dependencies
 
+## Staying up to date
+
+```bash
+bash refreshall.sh    # or: make git-pull
+```
+
+Pulls this workspace repo and every sub-repo (including `glowscript/`), fast-forward
+only. It never merges or overwrites local edits; a repo that has diverged or has
+conflicting local changes is reported and skipped. Run it before starting work on a
+different machine.
+
 ## Local development
 
 ```bash
