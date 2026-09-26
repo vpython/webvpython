@@ -3,6 +3,23 @@
 Management repo for the Web VPython stack. The four active sub-repos are
 separate git repositories cloned into this directory.
 
+## Coming back to this repo?
+
+1. `bash refreshall.sh`: pull this repo and every sub-repo (fast-forward only).
+2. `make`: the menu of everything you can run (serve, deploy, build, git).
+3. Current plan: [glowscript.org → webvpython.org migration](docs/superpowers/specs/2026-09-26-glowscript-to-webvpython-migration.md).
+   Work-in-progress notes for the runners are in [AGENTS.md](AGENTS.md).
+4. What's live: `curl -s https://beta.webvpython.org/config` shows the deployed `git_commit`.
+
+Things that bite:
+- **One database for everything.** glowscript.org (Classic GAE) and beta.webvpython.org both
+  use the Datastore in GCP project `glowscript`. `make serve-prod` writes to it too.
+- **Two projects.** Cloud Run (`flaskdstorehost`) and the database are in `glowscript`; the
+  runner and docs buckets are in `glowscript-py38`. Deploy scripts pin their targets, so the
+  active gcloud config doesn't matter.
+- **Runners stay on a separate origin** from the IDE. They run student code; never serve them
+  from the IDE's own domain.
+
 ## Sub-repos
 
 | Directory | Repo | Purpose |
