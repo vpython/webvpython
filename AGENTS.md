@@ -9,6 +9,8 @@ Docs: ./webVPythonDocsHome
 
 The Flask Host and Runners were synced with Classic GlowScript in June 2026. See `docs/superpowers/specs/2026-06-05-glowscript-migration-sync-design.md` for what was done.
 
+The plan for moving production from glowscript.org to webvpython.org (Cloudflare, cutover, legacy fallback) is in `docs/superpowers/specs/2026-09-26-glowscript-to-webvpython-migration.md`.
+
 ## Second public URL: beta.webvpython.org
 
 Added June 2026. Both `https://flaskdstorehost-dhppn6xgeq-uc.a.run.app` and `https://beta.webvpython.org` are live.
